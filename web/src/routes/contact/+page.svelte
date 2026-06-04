@@ -23,7 +23,7 @@
 
       <div class="bg-[#0d0f13] border border-white/5 rounded-md p-8 transition-colors hover:border-white/15 shadow-xl relative overflow-hidden group">
         
-        <div class="absolute inset-0 bg-gradient-to-br from-[#00f5c4]/[0.03] to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+        <div class="absolute inset-0 bg-linear-to-br from-[#00f5c4]/3 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
 
         <h2 class="jetbrains-mono-700 text-xl text-white mb-2 flex items-center gap-3">
           <svg class="w-5 h-5 text-[#00f5c4]" fill="none" stroke="currentColor" viewBox="0 0 24 24">

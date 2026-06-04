@@ -58,7 +58,7 @@
 		class="sticky top-0 z-30 flex items-center justify-between border-b border-white/5 bg-[#0a0a0a] p-4 md:hidden"
 	>
 		<div class="jetbrains-mono-700 text-lg tracking-tight">
-			<span class="mr-0.5 text-[#00f5c4]"> docs
+			<span class="mr-0.5 text-[#00f5c4]"> docs</span>
 		</div>
 		<button
 			onclick={toggleMenu}
@@ -92,7 +92,7 @@
 						{#each section.links as link (link)}
 							<li class="relative">
 								{#if currentView === link}
-									<div class="absolute top-0 bottom-0 -left-2 w-[2px] bg-[#00f5c4]"></div>
+									<div class="absolute top-0 bottom-0 -left-2 w-0.5 bg-[#00f5c4]"></div>
 								{/if}
 								<button
 									onclick={() => setView(link)}
@@ -141,7 +141,7 @@
 
 				<div class="mb-6 overflow-hidden border border-white/10 bg-[#0f0f0f] shadow-lg">
 					<div
-						class="flex items-center justify-between border-b border-white/5 bg-white/[0.02] px-4 py-2"
+						class="flex items-center justify-between border-b border-white/5 bg-white/2 px-4 py-2"
 					>
 						<span class="jetbrains-mono-400 text-xs text-[#545861]">bash</span>
 					</div>
@@ -160,7 +160,7 @@
 
 				<div class="mb-10 overflow-hidden border border-white/10 bg-[#0f0f0f] shadow-lg">
 					<div
-						class="flex items-center justify-between border-b border-white/5 bg-white/[0.02] px-4 py-2"
+						class="flex items-center justify-between border-b border-white/5 bg-white/2 px-4 py-2"
 					>
 						<span class="jetbrains-mono-400 text-xs text-[#545861]">bash</span>
 					</div>

@@ -1,7 +1,7 @@
 <script lang="ts">
     import { resolve } from '$app/paths';
     import { page } from '$app/state';
-    import logo from '$lib/assets/favicon.svg';
+    import logo from '$lib/assets/favicon.png';
 
     const navLinks = [
         { name: 'Home', href: '/'},
@@ -25,7 +25,7 @@
 >
     <div class="mx-auto flex max-w-6xl items-center justify-between px-10 py-3">
         <div class="text-xl font-bold tracking-tight">
-            <img src={logo} alt="Logo" class="h-12 w-12 invert">
+            <img src={logo} alt="Logo" class="h-12 w-12">
         </div>
 
         <nav class="hidden md:flex items-center gap-8">
