@@ -38,7 +38,6 @@ enum class RunMode
     SECURITY,
     LINKS,
     DOWNLOAD,
-    MATRIX,
     INVALID
 };
 
@@ -158,10 +157,10 @@ AppConfig parseCLI(const std::vector<std::string> &args)
             config.exitEarly = true;
             return config;
         }
-        else if (arg == "--matrix" || "-mmen")
-        {
-            config.mode = RunMode::MATRIX;
-        }
+        //else if (arg == "--matrix" || "-mmen")
+        //{
+        //    config.mode = RunMode::MATRIX;
+        //}
         // True Modes
         else if (arg == "--info" || arg == "-i")
         {
@@ -243,7 +242,7 @@ int main(int argc, char *argv[])
         return 0;
     }
 
-    if (config.url.empty() && config.mode != RunMode::MATRIX )
+    if (config.url.empty())
     {
         std::cerr << Color::RED << "Error: Missing target URL.\n"
                   << Color::RESET;
@@ -272,12 +271,6 @@ int main(int argc, char *argv[])
         return success ? 0 : 1;
     }
 
-    if (config.mode == RunMode::MATRIX)
-    {
-        triggerMatrix();
-        curl_global_cleanup();
-        return 0;
-    }
 
     NetworkResponse response = fetchWebpage(config.url);
 
