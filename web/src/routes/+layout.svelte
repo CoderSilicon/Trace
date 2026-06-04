@@ -7,7 +7,7 @@
 	let { children } = $props();
 </script>
 
-<div class="app bg-[#060709] selection:bg-[#dadada] selection:text-black">
+<div class="bg-[#060709] selection:bg-[#dadada] selection:text-black">
 	<Header />
 	<main>{@render children()}</main>
 	<Footer />
