@@ -36,6 +36,8 @@ enum class RunMode
     BINFO,
     JSON,
     SECURITY,
+    SELECT,
+    XPATH,
     LINKS,
     DOWNLOAD,
     INVALID
@@ -46,6 +48,7 @@ struct AppConfig
 {
     std::string url = "";
     std::string outputFile = "";
+    std::string queryExpression = "";
     RunMode mode = RunMode::INFO;
     bool exitEarly = false;
 };
@@ -67,6 +70,8 @@ void printHelp()
     std::cout << "  " << Color::GREEN << "--json" << Color::RESET << "      Raw JSONextraction\n";
     std::cout << "  " << Color::GREEN << "--links" << Color::RESET << "     Extract all hyperlinks from the page\n\n";
     std::cout << "  " << Color::GREEN << "--download" << Color::RESET << "  Download the target asset with visual progress\n\n";
+    std::cout << "  " << Color::GREEN << "--select <query>" << Color::RESET << "  Extract raw data via CSS selectors\n";
+    std::cout << "  " << Color::GREEN << "--x-path <expr>" << Color::RESET << "  Extract raw data via XPath expressions\n\n";
 
     std::cout << Color::YELLOW << "Default Flags:" << Color::RESET << "\n";
     std::cout << "  " << Color::GREEN << "--help" << Color::RESET << "      Manual\n";
@@ -162,6 +167,36 @@ AppConfig parseCLI(const std::vector<std::string> &args)
         //    config.mode = RunMode::MATRIX;
         //}
         // True Modes
+        if (arg == "--select" || arg == "-sel")
+        {
+            config.mode = RunMode::SELECT;
+            if (i + 1 < args.size())
+            {
+                config.queryExpression = args[++i];
+            }
+            else
+            {
+                std::cerr << Color::RED << "Error: --select requires a CSS selector query.\n" << Color::RESET;
+                config.mode = RunMode::INVALID;
+                config.exitEarly = true;
+                return config;
+            }
+        }
+        else if (arg == "--x-path" || arg == "-xp")
+        {
+            config.mode = RunMode::XPATH;
+            if (i + 1 < args.size())
+            {
+                config.queryExpression = args[++i];
+            }
+            else
+            {
+                std::cerr << Color::RED << "Error: --x-path requires an XPath expression.\n" << Color::RESET;
+                config.mode = RunMode::INVALID;
+                config.exitEarly = true;
+                return config;
+            }
+        }
         else if (arg == "--info" || arg == "-i")
         {
             config.mode = RunMode::INFO;
@@ -315,6 +350,12 @@ int main(int argc, char *argv[])
         break;
     case RunMode::SECURITY:
         printSecurityMode(info);
+        break;
+    case RunMode::SELECT:
+        printSelectMode(info, config.queryExpression); // <-- Route to Parser
+        break;
+    case RunMode::XPATH:
+        printXPathMode(info, config.queryExpression);  // <-- Route to Parser
         break;
     case RunMode::LINKS:
         printLinksMode(info);

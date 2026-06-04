@@ -1,5 +1,9 @@
 cmake_minimum_required(VERSION 3.15)
 
+if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
+    set(CMAKE_TOOLCHAIN_FILE "C:/dev/vcpkg/scripts/buildsystems/vcpkg.cmake" CACHE STRING "")
+endif()
+
 # Set your project name to Trace
 project(sget CXX)
 

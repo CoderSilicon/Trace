@@ -42,5 +42,7 @@ void printJsonMode(const PageInfo &info);
 void printDetailedMode(const PageInfo &info);
 void printLinksMode(const PageInfo &info);
 void printSecurityMode(const PageInfo &info);
+void printSelectMode(const PageInfo& info, const std::string& selector);
+void printXPathMode(const PageInfo& info, const std::string& xpathExpr);
 
 #endif

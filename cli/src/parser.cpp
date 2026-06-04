@@ -3,6 +3,10 @@
 #include <iostream>
 #include <regex>
 #include <algorithm>
+#include <libxml/HTMLparser.h>
+#include <libxml/xpath.h>
+#include <libxml/xpathInternals.h>
+#include <sstream>
 #include <nlohmann/json.hpp>
 
 using json = nlohmann::json;
@@ -222,4 +226,155 @@ void printJsonMode(const PageInfo &info)
     j["raw_html"] = info.rawHtml;
 
     std::cout << j.dump(4) << std::endl;
+}
+
+void printSelectMode(const PageInfo& info, const std::string& selector)
+{
+    std::cout << Color::CYAN << Color::BOLD << "\n=== CSS Selector Query ===" << Color::RESET << std::endl;
+    std::cout << Color::GRAY << "Evaluating selector: " << Color::RESET << "'" << selector << "'\n\n";
+
+    // TODO: Integrate Engine Extraction Logic here
+    // Example output mapping:
+    // std::vector<std::string> elements = extractCSS(info.rawHtml, selector);
+
+    std::cout << Color::RED << "[Engine Stub] CSS evaluation engine goes here." << Color::RESET << "\n";
+}
+
+void printSelectMode(const PageInfo& info, const std::string& selector)
+{
+    std::cout << Color::CYAN << Color::BOLD << "\n=== CSS Selector Query ===" << Color::RESET << std::endl;
+    std::cout << Color::GRAY << "Selector: " << Color::RESET << "'" << selector << "'\n\n";
+
+    std::string mappedXPath = convertCssToXPath(selector);
+    std::vector<std::string> elements = extractXPath(info.rawHtml, mappedXPath);
+
+    if (elements.empty())
+    {
+        std::cout << Color::YELLOW << "[-] No elements matched the selector.\n" << Color::RESET;
+    }
+    else
+    {
+        std::cout << Color::GREEN << "[+] Found " << elements.size() << " matching elements:\n\n" << Color::RESET;
+        for (size_t i = 0; i < elements.size(); ++i)
+        {
+            std::cout << Color::BOLD << "[" << i + 1 << "] " << Color::RESET
+                << elements[i] << "\n" << Color::GRAY << "---" << Color::RESET << "\n";
+        }
+    }
+}
+
+void printXPathMode(const PageInfo& info, const std::string& xpathExpr)
+{
+    std::cout << Color::CYAN << Color::BOLD << "\n=== XPath Evaluation ===" << Color::RESET << std::endl;
+    std::cout << Color::GRAY << "Expression: " << Color::RESET << "'" << xpathExpr << "'\n\n";
+
+    std::vector<std::string> nodes = extractXPath(info.rawHtml, xpathExpr);
+
+    if (nodes.empty())
+    {
+        std::cout << Color::YELLOW << "[-] No nodes matched the expression.\n" << Color::RESET;
+    }
+    else
+    {
+        std::cout << Color::GREEN << "[+] Found " << nodes.size() << " matching nodes:\n\n" << Color::RESET;
+        for (size_t i = 0; i < nodes.size(); ++i)
+        {
+            std::cout << Color::BOLD << "[" << i + 1 << "] " << Color::RESET
+                << nodes[i] << "\n" << Color::GRAY << "---" << Color::RESET << "\n";
+        }
+    }
+}
+
+//Additional Fucntions
+std::vector<std::string> extractXPath(const std::string& html, const std::string& xpathExpr)
+{
+    std::vector<std::string> results;
+
+    // Suppress libxml2 internal warnings to keep the CLI output clean
+    xmlInitParser();
+
+    // Parse HTML allowing for recovery of broken tags (common on the web)
+    htmlDocPtr doc = htmlReadMemory(html.c_str(), html.length(), nullptr, "UTF-8",
+        HTML_PARSE_RECOVER | HTML_PARSE_NOERROR | HTML_PARSE_NOWARNING);
+    if (doc == nullptr) return results;
+
+    xmlXPathContextPtr xpathCtx = xmlXPathNewContext(doc);
+    if (xpathCtx == nullptr)
+    {
+        xmlFreeDoc(doc);
+        return results;
+    }
+
+    xmlXPathObjectPtr xpathObj = xmlXPathEvalExpression((const xmlChar*)xpathExpr.c_str(), xpathCtx);
+    if (xpathObj == nullptr)
+    {
+        xmlXPathFreeContext(xpathCtx);
+        xmlFreeDoc(doc);
+        return results;
+    }
+
+    // Extract the raw text content from the matched nodes
+    if (xpathObj->nodesetval)
+    {
+        xmlNodeSetPtr nodes = xpathObj->nodesetval;
+        for (int i = 0; i < nodes->nodeNr; ++i)
+        {
+            xmlNodePtr node = nodes->nodeTab[i];
+            xmlChar* content = xmlNodeGetContent(node);
+            if (content)
+            {
+                // Trim trailing/leading whitespace for cleaner CLI output
+                std::string text((char*)content);
+                text.erase(0, text.find_first_not_of(" \n\r\t"));
+                text.erase(text.find_last_not_of(" \n\r\t") + 1);
+
+                if (!text.empty()) {
+                    results.push_back(text);
+                }
+                xmlFree(content);
+            }
+        }
+    }
+
+    // Memory cleanup
+    xmlXPathFreeObject(xpathObj);
+    xmlXPathFreeContext(xpathCtx);
+    xmlFreeDoc(doc);
+    xmlCleanupParser();
+
+    return results;
+}
+
+std::string convertCssToXPath(const std::string& css)
+{
+    std::string xpath = "//";
+    std::string current;
+
+    for (size_t i = 0; i < css.length(); ++i) {
+        char c = css[i];
+        if (c == ' ') {
+            xpath += current + "//";
+            current = "";
+        }
+        else if (c == '.') {
+            // Very rudimentary class match: .classname -> *[contains(@class, 'classname')]
+            size_t end = css.find_first_of(" .#", i + 1);
+            std::string cls = css.substr(i + 1, end - i - 1);
+            current += "*[contains(concat(' ', normalize-space(@class), ' '), ' " + cls + " ')]";
+            i += cls.length();
+        }
+        else if (c == '#') {
+            // ID match: #idname -> *[@id='idname']
+            size_t end = css.find_first_of(" .#", i + 1);
+            std::string id = css.substr(i + 1, end - i - 1);
+            current += "*[@id='" + id + "']";
+            i += id.length();
+        }
+        else {
+            current += c;
+        }
+    }
+    xpath += current;
+    if (xpath.substr(0, 3) == "//*") xpath = xpath.substr(2); // Cleanup leading abstract
+    return xpath;
 }

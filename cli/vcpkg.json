@@ -1,8 +1,16 @@
 {
-  "name": "sget",
-  "version-string": "1.0.0",
-  "dependencies": [
-    "curl",
-    "nlohmann-json"
-  ]
+    "name": "sget",
+    "version-string": "1.0.0",
+    "builtin-baseline": "342679de9b9a67a8bf60f993bc0c12530ccbc9f6",
+    "dependencies": [
+        "curl",
+        "nlohmann-json",
+        {
+            "name": "libxml2",
+            "default-features": false,
+            "features": [
+                "xpath-api"
+            ]
+        }
+    ]
 }
