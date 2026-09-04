@@ -1,0 +1,8 @@
+PROJECT_NAME           = "sget"
+PROJECT_BRIEF          = "Animated frontend on curl"
+OUTPUT_DIRECTORY       = docs/api
+INPUT                  = include/
+RECURSIVE              = YES
+GENERATE_LATEX         = NO
+GENERATE_HTML          = YES
+OPTIMIZE_OUTPUT_FOR_C  = YES
