@@ -1,78 +1,96 @@
-![sget](web/src/lib/assets/favicon.png)
+![sget](./assets/logo.png)
+
 # sget
 
-> **The CLI data-tracer.** data extractor built on top of `curl`.
+**High-performance CLI data-tracer and metadata extractor.**
 
-[![Built by CoderSilicon](https://img.shields.io/badge/Built%20by-CoderSilicon-004d40.svg?style=flat-square)](https://github.com/CoderSilicon)
-[![License: MIT](https://img.shields.io/badge/License-None-teal.svg?style=flat-square)](LICENSE)
+`sget` is a unique blend of modern ricing and infoation tech. It allows you to inspect a website with simultaenously also able to download files like `curl` and also operates directly on raw HTTP streams. Built in native C++ on top of `libcurl`, it treats the web as a queryable data pipeline with zero runtime overhead and minimal memory consumption.
 
-
----
-
-## ⚡ The Core Philosophy
-
-sget operates directly on raw HTTP streams. It treats the web as a queryable data pipeline rather than a visual canvas, making it incredibly lightweight and lightning-fast.
-
-* **`curl`-Powered Core:** Built straight on top of the industry standard for network requests. If `curl` can reach it, sget can extract from it.
-* **Zero Engine Overhead:** No Chromium instances, no heavy JS evaluation loops, and zero memory leaks. Just pure data parsing.
-* **Unix-Pipeline Native:** Seamlessly fits into your existing workflow. Pipe HTML/JSON into sget, or pipe sget's structured output straight into `jq`, `grep`, or local files.
-
----
-
-## 🏗️ Architecture Flow
+[Architecture](#-architecture) • [Key Features](#-features) • [Quickstart](#-quickstart) • [Usage](#-usage)
 
 
-```
+## ⚡ Features
 
-[ Target Webpage ]
-│
-▼  (Optimized HTTP Fetch)
-┌───────┐
-│ curl  │
-└───────┘
-│
-▼  (Raw Data Stream)
-┌───────┐
-│ sget │ ──► [ Extraction Engine: CSS Selectors / XPath / Regex ]
-└───────┘
-│
-▼  (Structured Output Flush)
-[ JSON / CSV / Text ] ──► Pipe to next tool (e.g., jq, redirect to file)
+* **Native `libcurl` Core:** Low-latency HTTP transfers, custom TLS handshakes, proxy chains, and cookie handling.
+* **Stream Extraction:** Zero-copy parsing for CSS selectors, XPath nodes, and metadata boundaries on raw streams.
+* **Unix-Pipeline Native:** Emits clean, structured data to `stdout` designed to pipe directly into `jq`, `grep`, or local storage.
+* **Low Footprint:** No headless browser engines or heavy JS evaluation loops—pure C++ execution.
+
+
+## 🏗️ Architecture
+
+```text
+[ Target Endpoint ]
+        │
+        ▼  (Low-Level Stream Fetch)
+  ┌───────────┐
+  │  libcurl  │
+  └───────────┘
+        │
+        ▼  (Raw Memory Buffer)
+  ┌───────────┐
+  │   sget    │ ──► [ Extraction Engine: CSS / XPath / Metadata ]
+  └───────────┘
+        │
+        ▼  (Flushed Output)
+  [ JSON / Raw ] ──► Pipe to terminal stdout / file
 
 ```
 
-1. **The Fetch:** sget utilizes native network optimization layers via `curl` for highly stable, low-level HTTP requests.
-2. **The Stream:** The target payload is fed instantly into sget's memory-efficient stream parser without downloading unnecessary visual assets.
-3. **The Extraction:** Your declarative filters (CSS tags, XPath nodes, or Regex boundaries) parse the DOM structure instantly.
-4. **The Output:** Structured data is flushed to `stdout` in your format of choice, completely ready for automated consumption.
+
+
+## 🛠️ Tech Stack
+
+| Layer | Technology | Purpose |
+| --- | --- | --- |
+| **Network Engine** | `libcurl` | High-throughput HTTP/S transfer & socket management |
+| **Language** | C++17 | Direct memory management and low-latency execution |
+| **Package Manager** | `vcpkg` | C++ dependency resolution |
+| **Environment** | Docker / Native | Standalone cross-platform distribution |
 
 
 
-## 🛠️ Stack & Mechanics
+## 🚀 Quickstart
 
-| Layer | Engine/Protocol | Purpose |
-| :--- | :--- | :--- |
-| **Libraries** | [curl](https://curl.se/) | Low-overhead HTTP transfer, custom headers, proxy handling, and cookie jars. |
-| **Language** | C++ with vcpkg | It is fast. That's it. |
-| **Formatting** | Native Colors(OS) | Use of COLORS defined by the operating system itself for latency |
-| **Environment** | Docker | Containers to run standalone inside any Linux, macOS, or Windows terminal. |
+### Building from Source
+
+```bash
+# Clone the repository
+git clone [https://github.com/CoderSilicon/sget.git](https://github.com/CoderSilicon/sget.git)
+cd sget
+
+# Compile using Makefile
+make
+
+# Run sget
+./bin/sget --help
+
+```
+
+## 💻 Basic Usage
+
+```bash
+# Extract open-graph metadata as JSON
+sget [https://news.ycombinator.com](https://news.ycombinator.com) --json
+
+# Extract specific CSS selectors and pipe to jq
+sget [https://example.com](https://example.com) --select "h1.title" | jq .
+
+# Run through a proxy with custom headers
+sget [https://api.example.com/data](https://api.example.com/data) --proxy "socks5://127.0.0.1:9050" -H "User-Agent: sget/1.0"
+
+```
 
 
-
-## 🔒 Optimization & Speed
-
-sget is engineered from the ground up for high-performance automation:
-* **Minimal Memory Footprint:** Uses a fraction of the RAM required by headless browsers (Puppeteer/Playwright).
-* **Parallel Scrapes:** Launch multiple data tracing threads concurrently without melting your CPU.
-* **Bypass Anti-Bot:** Native integration for rapid User-Agent rotation, custom request delays, and upstream proxy chains.
+ <br />
 
 
+<div align="center">
+
+<sub>Built with 💻 by <a href="https://github.com/CoderSilicon">CoderSilicon</a></sub>
 
 <br />
 
-<div align="center">
-  <sub>Built with 💻 by <a href="https://github.com/CoderSilicon">CoderSilicon</a></sub>
-  <br />
-  <em>"It is always better to differ from others."</em>
-</div>
+<em>"It is always better to differ from others."</em>
 
+</div> 
