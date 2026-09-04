@@ -1,68 +1,78 @@
 cmake_minimum_required(VERSION 3.15)
 
-if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
-    set(CMAKE_TOOLCHAIN_FILE "C:/dev/vcpkg/scripts/buildsystems/vcpkg.cmake" CACHE STRING "")
+if(NOT DEFINED CMAKE_TOOLCHAIN_FILE AND DEFINED ENV{VCPKG_ROOT})
+    set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" CACHE FILEPATH "Path to vcpkg toolchain")
 endif()
 
-# Set your project name to Trace
-project(sget CXX)
+project(sget VERSION 2.0.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Include directory for your headers
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-# Find the libcurl library installed via vcpkg
 find_package(CURL REQUIRED)
+find_package(LibXml2 REQUIRED)
+find_package(nlohmann_json REQUIRED)
 
-# Explicitly list your source files
-set(SOURCES 
-    src/main.cpp 
+set(SOURCES
+    src/main.cpp
     src/network.cpp
     src/parser.cpp
+    src/download.cpp
+    src/progress.cpp
 )
 
-# Create the executable target named 'trace'
 add_executable(sget ${SOURCES})
 
-# Link libcurl to your 'trace' executable
-target_link_libraries(sget PRIVATE CURL::libcurl)
+target_link_libraries(sget PRIVATE CURL::libcurl LibXml2::LibXml2 nlohmann_json::nlohmann_json)
 
+# Installed to /usr/bin/sget on Linux, staged by the ZIP generator on Windows
+install(TARGETS sget DESTINATION bin)
+
+# =============================================================================
+# CPack packaging (DEB / RPM / ZIP)
+# =============================================================================
 set(CPACK_PACKAGE_NAME "sget")
 set(CPACK_PACKAGE_VENDOR "CoderSilicon")
-set(CPACK_PACKAGE_VERSION "1.0.0")
+set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Advanced high-performance web data extractor")
 set(CPACK_PACKAGE_CONTACT "cs@codersilicon.com")
 set(CPACK_PACKAGE_HOMEPAGE_URL "https://github.com/CoderSilicon/sget")
+set(CPACK_PACKAGE_EXECUTABLES "sget" "sget")
 
-# --- LINUX SPECIFIC CONFIGURATION ---
+# Deterministic package file names:
+#   sget_2.0.0_amd64.deb   /   sget-2.0.0-1.x86_64.rpm   /   sget.zip
+set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
+set(CPACK_RPM_FILE_NAME RPM-DEFAULT)
+
+# Ship a stripped binary inside the packages
+set(CPACK_STRIP_FILES TRUE)
+
 if(UNIX AND NOT APPLE)
-    # Only generate Debian and RPM files when on a Linux build machine
-    install(TARGETS sget DESTINATION bin)
     set(CPACK_GENERATOR "DEB;RPM")
 
-    # Debian Package Controls
-    set(CPACK_DEBIAN_PACKAGE_MAINTAINER "CoderSilicon")
+    # --- Debian / Ubuntu (.deb) ---
+    set(CPACK_DEBIAN_PACKAGE_MAINTAINER "CoderSilicon <cs@codersilicon.com>")
     set(CPACK_DEBIAN_PACKAGE_SECTION "utils")
     set(CPACK_DEBIAN_PACKAGE_PRIORITY "optional")
-    set(CPACK_DEBIAN_PACKAGE_DEPENDS "libcurl4") # Ensures target system has native curl
+    set(CPACK_DEBIAN_PACKAGE_HOMEPAGE "${CPACK_PACKAGE_HOMEPAGE_URL}")
+    # Auto-detect runtime deps (libcurl4, libxml2, libstdc++6, ...) from the binary.
+    # Requires dpkg-dev (dpkg-shlibdeps) on the build host.
+    set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
 
-    # RPM Package Controls
+    # --- Red Hat / Fedora (.rpm) ---
     set(CPACK_RPM_PACKAGE_LICENSE "MIT")
     set(CPACK_RPM_PACKAGE_GROUP "Development/Tools")
-    set(CPACK_RPM_PACKAGE_REQUIRES "libcurl")
+    # Auto-detect Runtime requirements (libcurl.so.4, libxml2.so.2, ...) via ldd.
+    # Requires rpmbuild on the build host.
+    set(CPACK_RPM_PACKAGE_AUTOREQ ON)
 
-# --- WINDOWS SPECIFIC CONFIGURATION ---
 elseif(WIN32)
-    # When building on Windows, generate a clean ZIP archive of the binary instead
+    # Windows: fresh ZIP archive of the binary instead of an installer
     set(CPACK_GENERATOR "ZIP")
-    
-    # If you ever decide to use a Windows installer framework like NSIS or WIX later,
-    # you can swap "ZIP" out for "NSIS" right here without breaking Linux.
 endif()
 
-# Include the CPack engine module (Must be the absolute last line of your file)
 include(CPack)
 
 if(WIN32)
@@ -70,19 +80,19 @@ if(WIN32)
 
     add_custom_command(TARGET sget POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E make_directory "${WINDOWS_DIST_DIR}"
-        
-        COMMAND ${CMAKE_COMMAND} -E copy 
-            "$<TARGET_FILE:sget>" 
+
+        COMMAND ${CMAKE_COMMAND} -E copy
+            "$<TARGET_FILE:sget>"
             "${WINDOWS_DIST_DIR}/"
 
-        COMMAND ${CMAKE_COMMAND} -E copy 
-            "${CMAKE_SOURCE_DIR}/../scripts/install.bat" 
+        COMMAND ${CMAKE_COMMAND} -E copy
+            "${CMAKE_SOURCE_DIR}/../scripts/install.bat"
             "${WINDOWS_DIST_DIR}/"
-        
-        COMMAND ${CMAKE_COMMAND} -E copy 
-            "$<TARGET_RUNTIME_DLLS:sget>" 
+
+        COMMAND ${CMAKE_COMMAND} -E copy
+            "$<TARGET_RUNTIME_DLLS:sget>"
             "${WINDOWS_DIST_DIR}/"
-            
+
         COMMENT "Staging production binary distribution pack inside dist/windows..."
     )
 endif()

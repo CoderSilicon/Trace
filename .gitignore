@@ -27,6 +27,7 @@ vite.config.ts.timestamp-*
 build/
 bin/
 obj/
+pkg/
 *.o
 *.out
 *.exe

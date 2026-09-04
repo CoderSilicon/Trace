@@ -1,6 +1,9 @@
 #include "parser.hpp"
 #include "colors.hpp"
 #include <iostream>
+#include <iomanip>
+#include <vector>
+#include <cctype>
 #include <regex>
 #include <algorithm>
 #include <libxml/HTMLparser.h>
@@ -146,7 +149,6 @@ void printInfoMode(const PageInfo &info)
 
     std::cout << Color::CYAN << Color::BOLD << "\n=== Inspected Data ===" << Color::RESET << std::endl;
 
-    std::cout << Color::MAGENTA << Color::BOLD << "[  ]" << Color::RESET << std::endl;
     std::cout << Color::BOLD << "URL:          " << Color::RESET << Color::GRAY << info.url << Color::RESET << std::endl;
     std::cout << Color::BOLD << "Status Code:  " << Color::RESET << statusColor << Color::BOLD << info.statusCode << Color::RESET << std::endl;
     std::cout << Color::BOLD << "Server:       " << Color::RESET << info.server << std::endl;
@@ -228,17 +230,6 @@ void printJsonMode(const PageInfo &info)
     std::cout << j.dump(4) << std::endl;
 }
 
-void printSelectMode(const PageInfo& info, const std::string& selector)
-{
-    std::cout << Color::CYAN << Color::BOLD << "\n=== CSS Selector Query ===" << Color::RESET << std::endl;
-    std::cout << Color::GRAY << "Evaluating selector: " << Color::RESET << "'" << selector << "'\n\n";
-
-    // TODO: Integrate Engine Extraction Logic here
-    // Example output mapping:
-    // std::vector<std::string> elements = extractCSS(info.rawHtml, selector);
-
-    std::cout << Color::RED << "[Engine Stub] CSS evaluation engine goes here." << Color::RESET << "\n";
-}
 
 void printSelectMode(const PageInfo& info, const std::string& selector)
 {

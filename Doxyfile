@@ -1,5 +1,5 @@
 PROJECT_NAME           = "sget"
-PROJECT_BRIEF          = "Animated frontend on curl"
+PROJECT_BRIEF          = "Meta Extractor & MOdern Frontend of Curl"
 OUTPUT_DIRECTORY       = docs/api
 INPUT                  = include/
 RECURSIVE              = YES

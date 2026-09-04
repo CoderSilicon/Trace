@@ -45,4 +45,7 @@ void printSecurityMode(const PageInfo &info);
 void printSelectMode(const PageInfo& info, const std::string& selector);
 void printXPathMode(const PageInfo& info, const std::string& xpathExpr);
 
+std::vector<std::string> extractXPath(const std::string& html, const std::string& xpathExpr);
+std::string convertCssToXPath(const std::string& css);
+
 #endif

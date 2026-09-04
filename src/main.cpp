@@ -1,3 +1,7 @@
+#ifndef SGET_VERSION
+#define SGET_VERSION "2.0.0"
+#endif
+
 #include <iostream>
 #include <string>
 #include <vector>
@@ -6,6 +10,7 @@
 #include <thread>
 #include <curl/curl.h>
 #include "network.hpp"
+#include "download.hpp"
 #include "parser.hpp"
 #include "colors.hpp"
 
@@ -46,11 +51,17 @@ enum class RunMode
 // 2. Configuration State
 struct AppConfig
 {
+    std::vector<std::string> urls;
     std::string url = "";
-    std::string outputFile = "";
+    std::string outputFile = "";     // -o: save-as (download) or stdout redirect (inspect)
+    std::string directory = "";      // -d/--dir: download directory
     std::string queryExpression = "";
-    RunMode mode = RunMode::INFO;
+    std::string userAgent = "sget/1.1";
+    RunMode mode = RunMode::DOWNLOAD; // bare `sget <url>` downloads, curl-style
     bool exitEarly = false;
+    bool resume = false;             // -C/--resume
+    bool insecure = false;           // -k/--insecure
+    int parallel = 4;                // -P/--parallel
 };
 
 // --- Terminal Commands ---
@@ -59,32 +70,50 @@ void printHelp()
 {
     std::cout << "\n"
               << Color::CYAN << Color::BOLD << "sget" << Color::RESET
-              << " - Web Data Extractor\n\n";
+              << " - Meta Extractor & MOdern Frontend of Curl\n\n";
 
     std::cout << Color::YELLOW << "USAGE:" << Color::RESET << "\n";
-    std::cout << "  sget [options] <URL>\n\n";
+    std::cout << "  sget [options] <URL> [<URL2> ...]\n\n";
 
-    std::cout << Color::YELLOW << "Working flags:" << Color::RESET << "\n";
-    std::cout << "  " << Color::GREEN << "--info" << Color::RESET << "      Standard metadata extraction (Default)\n";
-    std::cout << "  " << Color::GREEN << "--binfo" << Color::RESET << "     Deep and detailed header extraction\n";
-    std::cout << "  " << Color::GREEN << "--json" << Color::RESET << "      Raw JSONextraction\n";
-    std::cout << "  " << Color::GREEN << "--links" << Color::RESET << "     Extract all hyperlinks from the page\n\n";
-    std::cout << "  " << Color::GREEN << "--download" << Color::RESET << "  Download the target asset with visual progress\n\n";
-    std::cout << "  " << Color::GREEN << "--select <query>" << Color::RESET << "  Extract raw data via CSS selectors\n";
-    std::cout << "  " << Color::GREEN << "--x-path <expr>" << Color::RESET << "  Extract raw data via XPath expressions\n\n";
+    std::cout << Color::YELLOW << "DOWNLOAD (default):" << Color::RESET << "\n";
 
-    std::cout << Color::YELLOW << "Default Flags:" << Color::RESET << "\n";
-    std::cout << "  " << Color::GREEN << "--help" << Color::RESET << "      Manual\n";
-    std::cout << "  " << Color::GREEN << "--version" << Color::RESET << "   Display core compiler version\n";
-    std::cout << "  " << Color::GREEN << "--author" << Color::RESET << "    Display the dev\n\n";
+    std::cout << "  " << Color::GREEN << "sget https://.../file.zip" << Color::RESET << "\n";
 
-    std::cout << Color::GRAY << "Example: sget --json https://google.com" << Color::RESET << "\n\n";
+    std::cout << "  " << Color::GREEN << "-o <name>" << Color::RESET << "     Save as <name> (single URL only)\n";
+    std::cout << "  " << Color::GREEN << "-d <dir>" << Color::RESET << "     Save files into <dir>\n";
+    std::cout << "  " << Color::GREEN << "-C" << Color::RESET << "           Resume a partial download\n";
+    std::cout << "  " << Color::GREEN << "-k" << Color::RESET << "           Skip TLS certificate verification\n";
+    std::cout << "  " << Color::GREEN << "-A <ua>" << Color::RESET << "     Custom User-Agent\n";
+    std::cout << "  " << Color::GREEN << "-P <n>" << Color::RESET << "      Download <n> files in parallel (default 4)\n";
+    std::cout << "  " << Color::GREEN << "--download" << Color::RESET << "  Download explicitly (same as default)\n\n";
+
+    std::cout << Color::YELLOW << "INSPECT (one URL):" << Color::RESET << "\n";
+    std::cout << "  " << Color::GREEN << "-i / --info" << Color::RESET << "       Page metadata, status, size\n";
+    std::cout << "  " << Color::GREEN << "-bi / --binfo" << Color::RESET << "    Deep header + socket audit\n";
+    std::cout << "  " << Color::GREEN << "-j / --json" << Color::RESET << "      Raw JSON output\n";
+    std::cout << "  " << Color::GREEN << "-l / --links" << Color::RESET << "     All hyperlinks on the page\n";
+    std::cout << "  " << Color::GREEN << "-s / --security" << Color::RESET << "  Security header scan\n";
+    std::cout << "  " << Color::GREEN << "-sel <css>" << Color::RESET << "      Extract via CSS selector\n";
+    std::cout << "  " << Color::GREEN << "-xp <expr>" << Color::RESET << "      Extract via XPath expression\n\n";
+
+    std::cout << Color::YELLOW << "OTHER:" << Color::RESET << "\n";
+    std::cout << "  " << Color::GREEN << "-o <file>" << Color::RESET << "   In inspect modes: write stdout to <file>\n";
+    std::cout << "  " << Color::GREEN << "-h / --help" << Color::RESET << "   Show this manual\n";
+    std::cout << "  " << Color::GREEN << "-v / --version" << Color::RESET << " Show version\n";
+    std::cout << "  " << Color::GREEN << "--author" << Color::RESET << "     Display the dev\n\n";
+
+    std::cout << Color::GRAY << "Examples:\n"
+              << "  sget https://example.com/file.zip\n"
+              << "  sget -d ~/downloads -P 8 url1 url2 url3\n"
+              << "  sget -C -o resume.zip https://example.com/big.iso\n"
+              << "  sget -i https://google.com\n"
+              << Color::RESET << "\n";
 }
 
 void printVersion()
 {
     std::cout << Color::CYAN << "sget " << Color::RESET
-              << "version " << Color::BOLD << "1.0.0-core" << Color::RESET << "\n";
+              << "version " << Color::BOLD << SGET_VERSION << Color::RESET << "\n";
 }
 
 void printAuthor()
@@ -217,9 +246,71 @@ AppConfig parseCLI(const std::vector<std::string> &args)
         {
             config.mode = RunMode::SECURITY;
         }
-        else if (arg == "--download" || arg == "-d")
-        { // <-- Add this block
+        else if (arg == "--download")
+        {
             config.mode = RunMode::DOWNLOAD;
+        }
+        else if (arg == "--dir" || arg == "-d")
+        {
+            if (i + 1 < args.size() && args[i + 1].rfind("-", 0) != 0)
+            {
+                config.directory = args[++i];
+            }
+            else
+            {
+                std::cerr << Color::RED << "Error: --dir requires a directory argument.\n" << Color::RESET;
+                config.mode = RunMode::INVALID;
+                config.exitEarly = true;
+                return config;
+            }
+        }
+        else if (arg == "--resume" || arg == "-C")
+        {
+            config.resume = true;
+        }
+        else if (arg == "--insecure" || arg == "-k")
+        {
+            config.insecure = true;
+        }
+        else if (arg == "--user-agent" || arg == "-A")
+        {
+            if (i + 1 < args.size() && args[i + 1].rfind("-", 0) != 0)
+            {
+                config.userAgent = args[++i];
+            }
+            else
+            {
+                std::cerr << Color::RED << "Error: --user-agent requires a UA string.\n" << Color::RESET;
+                config.mode = RunMode::INVALID;
+                config.exitEarly = true;
+                return config;
+            }
+        }
+        else if (arg == "--parallel" || arg == "-P")
+        {
+            if (i + 1 < args.size() && args[i + 1].rfind("-", 0) != 0)
+            {
+                try
+                {
+                    config.parallel = std::stoi(args[++i]);
+                }
+                catch (...)
+                {
+                    std::cerr << Color::RED << "Error: --parallel requires a number.\n" << Color::RESET;
+                    config.mode = RunMode::INVALID;
+                    config.exitEarly = true;
+                    return config;
+                }
+                if (config.parallel < 1)
+                    config.parallel = 1;
+            }
+            else
+            {
+                std::cerr << Color::RED << "Error: --parallel requires a number.\n" << Color::RESET;
+                config.mode = RunMode::INVALID;
+                config.exitEarly = true;
+                return config;
+            }
         }
         else if (arg == "--output" || arg == "-o")
         {
@@ -248,7 +339,9 @@ AppConfig parseCLI(const std::vector<std::string> &args)
         }
         else
         {
-            config.url = arg;
+            config.urls.push_back(arg);
+            if (config.url.empty())
+                config.url = arg;
         }
     }
     return config;
@@ -277,7 +370,7 @@ int main(int argc, char *argv[])
         return 0;
     }
 
-    if (config.url.empty())
+    if (config.urls.empty())
     {
         std::cerr << Color::RED << "Error: Missing target URL.\n"
                   << Color::RESET;
@@ -286,28 +379,30 @@ int main(int argc, char *argv[])
 
     if (config.mode == RunMode::DOWNLOAD)
     {
-        // Extract a basic filename from the URL, or default to "downloaded_file.out"
-        std::string filename = "downloaded_file.out";
-        size_t pos = config.url.find_last_of('/');
-        if (pos != std::string::npos && pos + 1 < config.url.length())
+        if (!config.outputFile.empty() && config.urls.size() > 1)
         {
-            filename = config.url.substr(pos + 1);
+            std::cerr << Color::RED << "Error: -o/--output can only be used with a single URL.\n"
+                      << Color::RESET;
+            return 1;
         }
 
-        std::cout << Color::CYAN << "Initializing download for: " << Color::RESET << filename << "\n\n";
-
-        bool success = downloadFile(config.url, filename);
-        if (success)
-        {
-            std::cout << "\n\n"
-                      << Color::GREEN << Color::BOLD << "Download Complete: "
-                      << Color::RESET << filename << "\n";
-        }
-        return success ? 0 : 1;
+        DownloadOptions opts;
+        opts.urls = config.urls;
+        opts.directory = config.directory;
+        opts.filename = config.outputFile;
+        opts.userAgent = config.userAgent;
+        opts.insecure = config.insecure;
+        opts.resume = config.resume;
+        opts.parallel = config.parallel;
+        return downloadAll(opts);
     }
 
+    if (config.urls.size() > 1)
+    {
+        std::cerr << Color::YELLOW << "Warning: inspect modes use only the first URL.\n" << Color::RESET;
+    }
 
-    NetworkResponse response = fetchWebpage(config.url);
+    NetworkResponse response = fetchWebpage(config.urls[0]);
 
     if (response.html.empty() && response.headers.empty())
     {
@@ -315,14 +410,20 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    PageInfo info = parseData(response, config.url);
+    if (response.statusCode >= 400)
+    {
+        std::cerr << Color::RED << "HTTP error " << response.statusCode
+                  << " for " << config.urls[0] << Color::RESET << "\n";
+    }
+
+    PageInfo info = parseData(response, config.urls[0]);
 
     std::ofstream outFile;
     std::streambuf *originalCoutBuffer = std::cout.rdbuf(); // Save the terminal buffer
 
     if (!config.outputFile.empty())
     {
-        outFile.open(config.outputFile, std::ios::out | std::ios::app);
+        outFile.open(config.outputFile, std::ios::out | std::ios::trunc);
         if (outFile.is_open())
         {
             // Redirect all standard std::cout calls directly to the hard drive
@@ -361,6 +462,7 @@ int main(int argc, char *argv[])
         printLinksMode(info);
         break;
     case RunMode::INVALID:
+    default:
         return 1;
     }
 
@@ -372,5 +474,5 @@ int main(int argc, char *argv[])
         std::cout << Color::GREEN << "Successfully wrote output to: " << config.outputFile << Color::RESET << "\n";
     }
 
-    return 0;
+    return (response.statusCode >= 400) ? 1 : 0;
 }

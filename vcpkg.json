@@ -1,6 +1,6 @@
 {
     "name": "sget",
-    "version-string": "1.0.0",
+    "version-string": "2.0.0",
     "builtin-baseline": "342679de9b9a67a8bf60f993bc0c12530ccbc9f6",
     "dependencies": [
         "curl",

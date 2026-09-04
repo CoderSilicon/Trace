@@ -1,14 +1,15 @@
-#ifndef NETWORK_HPP
-#define NETWORK_HPP
+#ifndef SGET_NETWORK_HPP
+#define SGET_NETWORK_HPP
 
 #include <string>
 
-struct NetworkResponse {
+struct NetworkResponse
+{
     std::string html;
     std::string headers;
     long statusCode = 0;
-    
-    // New Low-Level Network Stats
+
+    // Low-level network stats
     std::string remoteIp;
     long remotePort = 0;
     double totalTime = 0.0;
@@ -17,7 +18,6 @@ struct NetworkResponse {
     long redirectCount = 0;
 };
 
-NetworkResponse fetchWebpage(const std::string& url);
-bool downloadFile(const std::string& url, const std::string& outputPath);
+NetworkResponse fetchWebpage(const std::string &url);
 
-#endif // NETWORK_HPP
+#endif // SGET_NETWORK_HPP

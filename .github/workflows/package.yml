@@ -1,0 +1,92 @@
+name: Package (DEB/RPM)
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+jobs:
+  deb:
+    name: Build .deb (Ubuntu)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            cmake g++ make pkg-config \
+            libcurl4-openssl-dev libxml2-dev nlohmann-json3-dev \
+            dpkg-dev
+
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build --config Release -j"$(nproc)"
+
+      - name: Package .deb
+        run: cpack -B pkg --config build/CPackConfig.cmake -G DEB
+
+      - name: Verify installability
+        run: |
+          sudo dpkg -i pkg/*.deb
+          /usr/bin/sget -v
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sget-deb
+          path: pkg/*.deb
+          if-no-files-found: error
+
+      - name: Publish to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: pkg/*.deb
+
+  rpm:
+    name: Build .rpm (Fedora)
+    runs-on: ubuntu-latest
+    container: fedora:latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          dnf install -y \
+            git cmake make gcc-c++ pkgconf-pkg-config \
+            libcurl-devel libxml2-devel nlohmann-json-devel \
+            rpm-build
+
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build --config Release -j"$(nproc)"
+
+      - name: Package .rpm
+        run: cpack -B pkg --config build/CPackConfig.cmake -G RPM
+
+      - name: Verify installability
+        run: |
+          rpm -ivh pkg/*.rpm
+          /usr/bin/sget -v
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sget-rpm
+          path: pkg/*.rpm
+          if-no-files-found: error
+
+      - name: Publish to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: pkg/*.rpm
