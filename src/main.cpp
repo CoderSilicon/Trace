@@ -1,5 +1,5 @@
 #ifndef SGET_VERSION
-#define SGET_VERSION "2.0.1a"
+#define SGET_VERSION "2.0.1"
 #endif
 
 #include <iostream>

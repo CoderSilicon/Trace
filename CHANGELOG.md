@@ -2,7 +2,7 @@
 
 All notable changes to sget are documented here.
 
-## [2.0.1a] - 2026-09-06
+## [2.0.1] - 2026-09-06
 
 ### Changed
 
