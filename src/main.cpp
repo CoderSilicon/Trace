@@ -191,11 +191,6 @@ AppConfig parseCLI(const std::vector<std::string> &args)
             config.exitEarly = true;
             return config;
         }
-        //else if (arg == "--matrix" || "-mmen")
-        //{
-        //    config.mode = RunMode::MATRIX;
-        //}
-        // True Modes
         if (arg == "--select" || arg == "-sel")
         {
             config.mode = RunMode::SELECT;

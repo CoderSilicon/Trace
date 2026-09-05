@@ -115,7 +115,7 @@ static int xferInfoCallback(void *clientp, curl_off_t dltotal, curl_off_t dlnow,
 
         auto now = std::chrono::steady_clock::now();
         double dt = std::chrono::duration<double>(now - t->lastTick).count();
-        if (dt >= 0.25) // sample ~4x/sec, then smooth with an EMA
+        if (dt >= 0.25)
         {
             double inst = static_cast<double>(dlnow - t->lastDone) / dt;
             if (inst >= 0.0)
