@@ -31,10 +31,15 @@ NetworkResponse fetchWebpage(const std::string &url)
         curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, HeaderCallback);
         curl_easy_setopt(curl, CURLOPT_HEADERDATA, &response.headers);
         curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+        curl_easy_setopt(curl, CURLOPT_MAXREDIRS, 10L); // Bound redirect loops
         curl_easy_setopt(curl, CURLOPT_USERAGENT, "sget/2.0");
 
         curl_easy_setopt(curl, CURLOPT_TIMEOUT, 30L);
         curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 10L);
+        // Abort when a connection stalls (e.g. a server that accepts the socket
+        // but never sends data), instead of hanging until the total timeout.
+        curl_easy_setopt(curl, CURLOPT_LOW_SPEED_LIMIT, 1L);
+        curl_easy_setopt(curl, CURLOPT_LOW_SPEED_TIME, 10L);
         curl_easy_setopt(curl, CURLOPT_MAXFILESIZE, 20L * 1024L * 1024L);
         curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
 
@@ -42,10 +47,11 @@ NetworkResponse fetchWebpage(const std::string &url)
 
         if (res != CURLE_OK)
         {
-            std::cerr << "Network error: " << curl_easy_strerror(res) << std::endl;
+            response.error = curl_easy_strerror(res);
         }
         else
         {
+            response.ok = true;
             // Extract HTTP Status
             curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response.statusCode);
 

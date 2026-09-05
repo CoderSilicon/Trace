@@ -9,6 +9,11 @@ struct NetworkResponse
     std::string headers;
     long statusCode = 0;
 
+    // Transfer outcome: ok is true only when the HTTP transfer completed
+    // successfully; error carries the libcurl message when it did not.
+    bool ok = false;
+    std::string error;
+
     // Low-level network stats
     std::string remoteIp;
     long remotePort = 0;

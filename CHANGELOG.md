@@ -2,6 +2,12 @@
 
 All notable changes to sget are documented here.
 
+## [2.0.1a] - 2026-09-06
+
+### Changed
+
+- Removed a few unoptimized lines for cleaner, faster code.
+
 ## [2.0.0] - 2026-09-05
 
 ### Added

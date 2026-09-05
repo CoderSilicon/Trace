@@ -175,7 +175,7 @@ void printDetailedMode(const PageInfo &info)
 {
     std::string statusColor = (info.statusCode >= 400) ? Color::RED : (info.statusCode >= 300 ? Color::YELLOW : Color::GREEN);
 
-    std::cout << Color::CYAN << Color::BOLD << "\n=== [ TRACE ADVANCED AUDIT ] ===" << Color::RESET << std::endl;
+    std::cout << Color::CYAN << Color::BOLD << "\n=== Inspected Data++ ===" << Color::RESET << std::endl;
 
     std::cout << Color::MAGENTA << Color::BOLD << "\n[ SOCKET & TELEMETRY ]" << Color::RESET << std::endl;
     std::cout << Color::BOLD << "Target URL:       " << Color::RESET << info.url << std::endl;
@@ -338,34 +338,63 @@ std::vector<std::string> extractXPath(const std::string& html, const std::string
 
 std::string convertCssToXPath(const std::string& css)
 {
+    // Tiny translator supporting tag, .class, #id and space-separated
+    // descendant combinators, e.g. "div#main.content a".
     std::string xpath = "//";
-    std::string current;
+    std::string step;
+    bool stepHasTag = false;
+    bool firstStep = true;
 
-    for (size_t i = 0; i < css.length(); ++i) {
+    auto flushStep = [&]() {
+        if (step.empty()) return;
+        if (!firstStep) xpath += "//";
+        if (!stepHasTag) xpath += "*"; // Wildcard when no explicit tag was given
+        xpath += step;
+        step.clear();
+        stepHasTag = false;
+        firstStep = false;
+    };
+
+    for (size_t i = 0; i < css.length(); ++i)
+    {
         char c = css[i];
-        if (c == ' ') {
-            xpath += current + "//";
-            current = "";
+
+        if (std::isspace((unsigned char)c))
+        {
+            flushStep();
         }
-        else if (c == '.') {
-            // Very rudimentary class match: .classname -> *[contains(@class, 'classname')]
+        else if (c == '.')
+        {
+            // .classname -> [contains(concat(' ', normalize-space(@class), ' '), ' classname ')]
             size_t end = css.find_first_of(" .#", i + 1);
             std::string cls = css.substr(i + 1, end - i - 1);
-            current += "*[contains(concat(' ', normalize-space(@class), ' '), ' " + cls + " ')]";
+            if (cls.empty()) continue;
+            step += "[contains(concat(' ', normalize-space(@class), ' '), ' " + cls + " ')]";
             i += cls.length();
         }
-        else if (c == '#') {
-            // ID match: #idname -> *[@id='idname']
+        else if (c == '#')
+        {
+            // #idname -> [@id='idname']
             size_t end = css.find_first_of(" .#", i + 1);
             std::string id = css.substr(i + 1, end - i - 1);
-            current += "*[@id='" + id + "']";
+            if (id.empty()) continue;
+            step += "[@id='" + id + "']";
             i += id.length();
         }
-        else {
-            current += c;
+        else
+        {
+            // Bare tag name, e.g. h1 or div
+            size_t end = css.find_first_of(" .#", i);
+            std::string tag = css.substr(i, end - i);
+            if (!stepHasTag && !tag.empty())
+            {
+                step += tag;
+                stepHasTag = true;
+            }
+            if (end == std::string::npos) i = css.length();
+            else i = end - 1;
         }
     }
-    xpath += current;
-    if (xpath.substr(0, 3) == "//*") xpath = xpath.substr(2); // Cleanup leading abstract
+    flushStep();
     return xpath;
 }

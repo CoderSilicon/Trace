@@ -1,5 +1,5 @@
 #ifndef SGET_VERSION
-#define SGET_VERSION "2.0.0"
+#define SGET_VERSION "2.0.1a"
 #endif
 
 #include <iostream>
@@ -123,47 +123,6 @@ void printAuthor()
               << Color::GRAY << "> It is always better to differ from others." << Color::RESET << "\n";
 }
 
-void triggerMatrix()
-{
-    std::cout << Color::GREEN << "01101001 01101110 01110100 01101001 01100001 01101100 01101001 01111010 01101001 01101110 01100111 00100000 01101101 01100001 01110100 01110010 01101001 01111000." << Color::RESET << "\n";
-    std::this_thread::sleep_for(std::chrono::milliseconds(700));
-
-    uintptr_t baseAddr = 0x7fff5fbff000;
-
-    for (int i = 0; i < 120; ++i)
-    {
-        std::cout << Color::GREEN << "0x" << std::hex << baseAddr << "  " << Color::RESET;
-        baseAddr += 16;
-
-        for (int j = 0; j < 8; ++j)
-        {
-            int rawByte = rand() % 256;
-            if (rawByte < 16)
-                std::cout << "0";
-            std::cout << std::hex << rawByte << " ";
-        }
-
-        std::cout << Color::GRAY << "| " << Color::RESET;
-
-        for (int j = 0; j < 12; ++j)
-        {
-
-            char printableChar = (rand() % 94) + 33;
-            if (printableChar == '[' || printableChar == ']' || printableChar == '%')
-            {
-                printableChar = '.';
-            }
-            std::cout << Color::GREEN << printableChar << Color::RESET;
-        }
-
-        std::cout << "\n";
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(12));
-    }
-
-    std::cout << Color::GREEN << Color::BOLD << "\n[SUCCESS] FATAL CORE DUMP COMPLETED. STAY IN THE SIMULATION.\n\n"
-              << Color::RESET;
-}
 // Engine
 AppConfig parseCLI(const std::vector<std::string> &args)
 {
@@ -399,9 +358,20 @@ int main(int argc, char *argv[])
 
     NetworkResponse response = fetchWebpage(config.urls[0]);
 
+    if (!response.ok)
+    {
+        std::cerr << Color::RED << "Fatal: Could not fetch " << config.urls[0]
+                  << " (" << response.error
+                  << "). The rest can't be fetched." << Color::RESET << "\n";
+        curl_global_cleanup();
+        return 1;
+    }
+
     if (response.html.empty() && response.headers.empty())
     {
-        std::cerr << Color::RED << "Fatal: Failed to fetch or received empty response." << Color::RESET << "\n";
+        std::cerr << Color::RED << "Fatal: Received empty response from "
+                  << config.urls[0] << ". The rest can't be fetched." << Color::RESET << "\n";
+        curl_global_cleanup();
         return 1;
     }
 
