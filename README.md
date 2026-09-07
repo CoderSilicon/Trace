@@ -71,13 +71,13 @@ make
 
 ```bash
 # Extract open-graph metadata as JSON
-sget [https://news.ycombinator.com](https://news.ycombinator.com) --json
+sget https://news.ycombinator.com --json
 
-# Extract specific CSS selectors and pipe to jq
-sget [https://example.com](https://example.com) --select "h1.title" | jq .
+# Extract specific CSS selectors 
+sget https://example.com --select "p" 
 
-# Run through a proxy with custom headers
-sget [https://api.example.com/data](https://api.example.com/data) --proxy "socks5://127.0.0.1:9050" -H "User-Agent: sget/1.0"
+# Run through a detail check
+sget https://api.example.com/data --info
 
 ```
 
@@ -87,10 +87,6 @@ sget [https://api.example.com/data](https://api.example.com/data) --proxy "socks
 
 <div align="center">
 
-<sub>Built with 💻 by <a href="https://github.com/CoderSilicon">CoderSilicon</a></sub>
-
-<br />
-
+<sub>Built with 💻 by <a href="https://github.com/CoderSilicon">CoderSilicon</a></sub><br/>
 <em>"It is always better to differ from others."</em>
-
 </div> 
